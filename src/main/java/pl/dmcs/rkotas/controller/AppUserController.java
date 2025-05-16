@@ -1,36 +1,106 @@
 package pl.dmcs.rkotas.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.servlet.ModelAndView;
 import pl.dmcs.rkotas.domain.AppUser;
+import pl.dmcs.rkotas.service.*;
+import pl.dmcs.rkotas.validator.AppUserValidator;
 
 @Controller
 public class AppUserController {
 
+    private AppUserValidator appUserValidator = new AppUserValidator();
+
+    // injected by field
+    @Autowired
+    AddressService addressService;
+
+    // injected by field
+    @Autowired
+    AppUserRoleService appUserRoleService;
+
+    // injected by constructor
+    private AppUserService appUserService;
+    @Autowired
+    private ReCaptchaService reCaptchaService;
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    public AppUserController(AppUserService appUserService) {
+        this.appUserService = appUserService;
+    }
+
     @RequestMapping(value = "/appUsers")
-    public ModelAndView showAppUsers() {
+    public String showAppUsers(Model model, HttpServletRequest request) {
+        int appUserId = ServletRequestUtils.getIntParameter(request, "appUserId" , -1);
+        if (appUserId > 0){
+            AppUser appUser = appUserService.getAppUser(appUserId);
+            appUser.setPassword("");
+            appUser.setAddress(addressService.getAddress(appUserService.getAppUser(appUserId).getAddress().getId()));
+            model.addAttribute("selectedAddress", appUserService.getAppUser(appUserId).getAddress().getId());
+            model.addAttribute("appUser", appUser);
+        }
+        else
+            model.addAttribute("appUser", new AppUser());
 
-	 /*  AppUser appUser = new AppUser();
-	   appUser.setFirstName("rafal");
-	   appUser.setLastName("kotas");
-	   appUser.setEmail("rkotas@dmcs.pl");
-	   appUser.setTelephone("123456789");*/
+        model.addAttribute("appUserList", appUserService.listAppUser());
+        model.addAttribute("appUserRoleList",appUserRoleService.listAppUserRole());
+        model.addAttribute("addressesList", addressService.listAddress());
 
-        return new ModelAndView("appUser", "appUser", new AppUser());
+        return "appUser";
     }
 
     @RequestMapping(value = "/addAppUser", method = RequestMethod.POST)
-    public String addAppUser(@ModelAttribute("appUser") AppUser appUser) {
+    public String addAppUser(@Valid @ModelAttribute("appUser") AppUser appUser, BindingResult result, Model model, HttpServletRequest request) {
 
         System.out.println("First Name: " + appUser.getFirstName() +
                 " Last Name: " + appUser.getLastName() + " Tel.: " +
                 appUser.getTelephone() + " Email: " + appUser.getEmail());
 
-        return "redirect:appUsers";
+        appUserValidator.validate(appUser, result);
+
+        if (result.getErrorCount() == 0 && reCaptchaService.verify(request.getParameter("g-recaptcha-response"))){
+
+            if (appUser.getId() == 0)
+                appUserService.addAppUser(appUser);
+            else
+                appUserService.editAppUser(appUser);
+
+            emailService.sendMail(appUser.getEmail(), "Hello, welcome!", "Account created - confirmation email");
+            return "redirect:appUsers";
+        }
+
+        appUser.getAppUserRole().clear();
+
+        model.addAttribute("appUserList", appUserService.listAppUser());
+        model.addAttribute("appUserRoleList",appUserRoleService.listAppUserRole());
+        model.addAttribute("addressesList", addressService.listAddress());
+        return "appUser";
+    }
+
+    @RequestMapping("/delete/{appUserId}")
+    public String deleteUser(@PathVariable("appUserId") Long appUserId) {
+        appUserService.removeAppUser(appUserId);
+        return "redirect:/appUsers";
     }
 
 }
+
+
+
+
+
+
+
+
 
