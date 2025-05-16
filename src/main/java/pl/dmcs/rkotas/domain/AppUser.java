@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
+
+
 
 import java.util.HashSet;
 import java.util.Set;
@@ -29,7 +32,8 @@ public class AppUser {
     @NotNull
     private String email;
 
-    @Size(min=9, max=9)
+    @Pattern(regexp = "^\\+\\d{2}-\\d{3}-\\d{3}-\\d{3}$",
+            message = "Phone must be in format +XX-XXX-XXX-XXX")
     private String telephone;
 
     @NotNull

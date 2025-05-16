@@ -8,6 +8,7 @@
     <title><spring:message code="label.addAppUser"/></title>
     <!-- Captcha Google -->
     <script src="https://www.google.com/recaptcha/api.js"></script>
+
 </head>
 <body>
 
@@ -55,7 +56,7 @@
         </tr>
         <tr>
             <td><form:label path="telephone"><spring:message code="label.telephone"/></form:label></td>
-            <td><form:input path="telephone" /></td>
+            <td><form:input path="telephone" pattern="\+\d{2}-\d{3}-\d{3}-\d{3}" title="Format: +XX-XXX-XXX-XXX" /></td>
             <td><form:errors path="telephone"/></td>
         </tr>
         <tr>

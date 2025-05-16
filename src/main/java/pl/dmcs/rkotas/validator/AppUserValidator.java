@@ -17,18 +17,27 @@ public class AppUserValidator implements Validator {
     }
 
     @Override
-    public void validate(Object arg0, Errors errors) {
+    public void validate(Object target, Errors errors) {
+        AppUser user = (AppUser) target;
+
         ValidationUtils.rejectIfEmpty(errors, "firstName", "error.field.required");
         ValidationUtils.rejectIfEmpty(errors, "lastName", "error.field.required");
         ValidationUtils.rejectIfEmpty(errors, "telephone", "error.field.required");
         ValidationUtils.rejectIfEmpty(errors, "email", "error.field.required");
 
         if (errors.getErrorCount() == 0) {
-            if (StringUtils.hasText(((AppUser)arg0).getEmail()) && emailValidator.isValid(((AppUser)arg0).getEmail()) == false) {
+            // Email check
+            if (StringUtils.hasText(user.getEmail()) && !emailValidator.isValid(user.getEmail())) {
                 errors.rejectValue("email", "error.email.invalid");
+            }
+
+            // Telephone format check
+            if (!user.getTelephone().matches("\\+\\d{2}-\\d{3}-\\d{3}-\\d{3}")) {
+                errors.rejectValue("telephone", "error.telephone.invalidFormat");
             }
         }
     }
+
 
 }
 
